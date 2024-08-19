@@ -3,5 +3,5 @@
   <component name="Black">
     <option name="sdkName" value="foldMSA" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="foldMSA" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="pairwise2msa" project-jdk-type="Python SDK" />
 </project>
