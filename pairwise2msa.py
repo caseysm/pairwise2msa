@@ -8,6 +8,7 @@ import shutil
 import math
 import csv
 import logging
+import argparse
 from pathlib import Path
 from typing import Optional, List, Dict
 from functools import lru_cache
@@ -25,6 +26,9 @@ from Bio.PDB import PDBParser as BioPDBParser
 
 from ete3 import Tree
 
+import cProfile
+import pstats
+import io
 
 
 """
@@ -1358,6 +1362,7 @@ def dict_to_frozenset(d):
     else:
         return d
 
+
 def frozenset_to_dict(f):
     if isinstance(f, frozenset):
         return {k: frozenset_to_dict(v) for k, v in f}
@@ -1367,11 +1372,14 @@ def frozenset_to_dict(f):
         return f
 
 
-"""
-************************************************************************************************************************
-**************************************************** MAIN WORKFLOW *****************************************************
-************************************************************************************************************************
-"""
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Process alignments using a tree-based approach.")
+    parser.add_argument("--tree", required=True, help="Path to the tree file")
+    parser.add_argument("--fasta_folder", required=True, help="Path to the folder containing pairwise FASTA files")
+    parser.add_argument("--pdb_dir", required=True, help="Path to the directory containing PDB files")
+    return parser.parse_args()
+
+
 node_class_dict = {
     "leaf": "A terminal node representing a single sequence",
     "leaf_binary": "A node with two leaf children",
@@ -1382,7 +1390,14 @@ node_class_dict = {
 }
 
 
-def main():
+"""
+************************************************************************************************************************
+**************************************************** MAIN WORKFLOW *****************************************************
+************************************************************************************************************************
+"""
+
+
+def main(tree_file_path, fasta_folder_path, pdb_dir):
     # Set up the correct path for the matrix directory
     SCRIPT_DIR = Path(__file__).resolve().parent
     MATRIX_DIR = SCRIPT_DIR / "scoring_matrix"
@@ -1395,9 +1410,6 @@ def main():
     matrix_data = load_scoring_matrices(MATRIX_DIR)
 
     # Define paths
-    tree_file_path = "/home/casey/Desktop/lab_projects/test/matrix2tree/fident_matrix_ln_rooted/rooted_upgma_tree.tree"
-    fasta_folder_path = "/home/casey/Desktop/lab_projects/test/pdb2pairwise/usalign_fNS/pairwise_fastas"
-    pdb_dir = "/home/casey/Desktop/lab_projects/foldMSA_USalign/test/pdbs"
     matrix_file = MATRIX_DIR / "BLOSUM62.txt"
     _3di_matrix_file = MATRIX_DIR / "3di_matrix.txt"
 
@@ -1463,13 +1475,6 @@ def main():
         if removed:
             print(f"\nRemoved duplicate sequences in final alignment: {', '.join(removed)}")
 
-        # Ensure all six sequences are in the alignment
-        expected_sequences = {'btAID', 'hsAID', 'hsA3A', 'saA3A', 'mmAID', 'ddd1'}
-        missing_sequences = expected_sequences - set(seq.id for seq in final_alignment)
-        if missing_sequences:
-            print(f"Warning: Missing sequences in final alignment: {', '.join(missing_sequences)}")
-            # Here you might want to add code to retrieve and add the missing sequences
-
         # Score the final alignment
         final_score = score_multiple_alignment(final_alignment, pdb_dir,
                                                str(matrix_file), str(_3di_matrix_file), aa_to_3di_map,
@@ -1490,5 +1495,8 @@ def main():
     else:
         print("Failed to generate final alignment")
 
+    return final_alignment, final_score
+
 if __name__ == "__main__":
-    main()
+    args = parse_arguments()
+    main(args.tree, args.fasta_folder, args.pdb_dir)
